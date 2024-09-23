@@ -1,0 +1,39 @@
+#!/snap/bin/groovy
+import groovy.xml.XmlSlurper
+
+
+
+
+def addElement(n){
+    def output = new StringBuilder()
+    println n.name()
+    if(n.children().size()>0){
+        output.append("<xs:element name=\"${n.name()}\">\n")
+        output.append("<xs:complexType><xs:sequence>")
+        n.children().toUnique().each{ child-> 
+        addElement(child)
+    }
+    
+
+    output.append("</xs:sequence></xs:complexType>")
+    }
+    
+    
+    return output
+
+}
+
+def main(){
+    def xml = new XmlSlurper().parse('Payload.xml')
+    def output = new StringBuilder()
+    output.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    output.append('<xs:schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">\n')
+output.append('\n')
+
+    output.append(addElement(xml))
+
+    output.append('\n\n')
+    output.append('</xs:schema>')
+    println output
+}
+main()
