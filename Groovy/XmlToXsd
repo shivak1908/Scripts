@@ -1,39 +1,86 @@
 #!/snap/bin/groovy
 import groovy.xml.XmlSlurper
+def addElement(n,writer,maxOccurs=''){
+    
+def mySet=[]
+   ifChildren=ifAttr=!n.children().isEmpty()
+   ifAttr=!n.attributes().isEmpty()
+   
+    
+    if (ifChildren|| ifAttr){
+        writer.append("<xs:element ${maxOccurs} name=\"${n.name()}\" >")
+        writer.append("<xs:complexType>")
 
+       
+        if (ifChildren){
+         writer.append("<xs:sequence>")
+         n.children().each{
+            currentNode-> 
+            def nodeName= currentNode.name()
+            def nodeChildrenCount=currentNode.children().size().toString()    
+            countOfCurrentNode= n."$nodeName".size().toInteger()
+         if (countOfCurrentNode >1){
+            maxOccurs='maxOccurs="unbounded"'  
+         }
+         else{
+            maxOccurs=''    
+         }
+         if(!mySet.contains(nodeName)){
+             mySet.add(nodeName)
+             if(nodeChildrenCount!='0'){
+                 addElement(currentNode,writer,maxOccurs)
+             }
+             else if(!currentNode.attributes().isEmpty()) {
+                writer.append("<xs:element ${maxOccurs} name=\"${currentNode.name()}\" >")
+                writer.append("<xs:complexType>")
+                writer.append("<xs:simpleContent>")
+                writer.append("<xs:extension base=\"xs:string\">")
+                currentNode.attributes().each{attribute ->
+                
+                writer.append("<xs:attribute name=\"${attribute.toString().split('=')[0]}\" type=\"xs:string\" />")
+                }
+            writer.append("</xs:extension>")
+            writer.append("</xs:simpleContent>")
+            writer.append("</xs:complexType>")
+            writer.append("</xs:element>")
+             }
+            else{
+                writer.append("<xs:element ${maxOccurs} name=\"${nodeName}\" type=\"xs:string\" />")
+            }
+         }
+          
+     }
+        }
+     writer.append("</xs:sequence>")
+      if(!n.attributes().isEmpty()){
 
-
-
-def addElement(n){
-    def output = new StringBuilder()
-    println n.name()
-    if(n.children().size()>0){
-        output.append("<xs:element name=\"${n.name()}\">\n")
-        output.append("<xs:complexType><xs:sequence>")
-        n.children().toUnique().each{ child-> 
-        addElement(child)
+    
+      n.attributes().each{attribute ->
+      println attribute
+       writer.append("<xs:attribute name=\"${attribute.toString().split('=')[0]}\" type=\"xs:string\" />")
+    }
+    
+ }
+   writer.append("</xs:complexType>")
+   writer.append("</xs:element>")
+        }
+        
+        
     }
     
 
-    output.append("</xs:sequence></xs:complexType>")
-    }
     
-    
-    return output
-
-}
 
 def main(){
+    def writer = new StringWriter()
     def xml = new XmlSlurper().parse('Payload.xml')
-    def output = new StringBuilder()
-    output.append('<?xml version="1.0" encoding="utf-8"?>\n')
-    output.append('<xs:schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">\n')
-output.append('\n')
+    writer.append('<?xml version="1.0" encoding="utf-8"?>')
+    writer.append('<xs:schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">')
 
-    output.append(addElement(xml))
+   addElement(xml,writer)
+   
+   writer.append('</xs:schema>')
 
-    output.append('\n\n')
-    output.append('</xs:schema>')
-    println output
+  println writer
 }
 main()
